@@ -1,10 +1,9 @@
 import click
 
-from app.cli import pass_drive
+from app.cli import pass_provider
 from app.helpers import get_folder
 from app.upload_pipeline import upload_dir
 from app.download_pipeline import download_dir
-from app.constants import BACKENDS, HELPER_COMMANDS
 
 
 def upload_handler(drive):
@@ -42,18 +41,22 @@ def gdrive_handler(drive):
     COMMAND_HANDLERS[value](drive)
 
 
+BACKENDS = {'g': 'Google Drive'}
+HELPER_COMMANDS = {'u': 'upload', 'd': 'download'}
+
 SOURCE_HANDLERS = {
     'g': gdrive_handler
 }
-
 COMMAND_HANDLERS = {
     'u': upload_handler,
     'd': download_handler
 }
 
+
 @click.command()
-@pass_drive
+@pass_provider
 def helper(drive):
+    """Run interactive handler"""
     msg = '\n'.join([f'{k} - {v}' for k, v in BACKENDS.items()])
     msg = f"Please choose a backend ({BACKENDS['g']} by default) \n" + msg
     value = click.prompt(msg, type=str, default=BACKENDS['g'])
