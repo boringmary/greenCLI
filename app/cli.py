@@ -1,26 +1,19 @@
 from gevent import monkey; monkey.patch_all()
 import os
-import io
-
 
 import click
 import pickle
 import os.path
 import httplib2
-from pathlib import Path
 from pprint import pprint
 
-import gevent
-
+import googleapiclient
 import google_auth_httplib2
 from googleapiclient.discovery import build
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
 
-SCOPES = ['https://www.googleapis.com/auth/drive']
-FOLDER_MIMETYPE = 'application/vnd.google-apps.folder'
-
+from app.constants import SCOPES
 
 class GDrive(object):
     def __init__(self, client):
@@ -40,6 +33,7 @@ class GDrive(object):
 pass_drive = click.make_pass_decorator(GDrive)
 
 
+
 @click.group()
 # @click.option("--verbose", "-v", is_flag=True, help="Enables verbose mode.")
 @click.version_option("1.0")
@@ -48,9 +42,7 @@ pass_drive = click.make_pass_decorator(GDrive)
 def cli(ctx, verbose):
     """Gdrive is a command line tool that provides CLI for Google Drive interactions.
     """
-    # Create a repo object and remember it as as the context object.  From
-    # this point onwards other commands can refer to it by using the
-    # @pass_repo decorator.
+
     creds = None
     if os.path.exists('../token.pickle'):
         with open('../token.pickle', 'rb') as token:
@@ -93,97 +85,10 @@ def lst(drive):
         print("\n")
 
 
-@cli.command()
-@click.option("-f", "--frm", help="Where to find files")
-@click.option("-t", "--to", help="Where to put files")
-@pass_drive
-def upload(drive, frm, to):
-    """List of all documents in current user's GDrive directory
-    """
-    p = Path(frm)
-    if not p.is_dir() and not p.exists():
-        click.echo("Please specify existing directory", err=True)
-        return
-
-    page_token = None
-    drive_folders = drive.cli.files().list(
-        q=f"mimeType = '{FOLDER_MIMETYPE}' and name = '{to}' and trashed = False",
-        spaces='drive',
-        pageToken=page_token
-    ).execute()
-
-    if not drive_folders:
-        click.echo("Please specify existing drive folder")
-    fid = drive_folders['files'][0]['id']
-
-    from_files = [x for x in p.iterdir() if x.is_file()]
-    print(from_files)
-
-    jobs = [gevent.spawn(upload_file, drive.cli, file, fid) for file in from_files]
-    gevent.wait(jobs)
+from app.upload_pipeline import upload
+from app.download_pipeline import download
 
 
-@cli.command()
-@click.option("-f", "--frm", help="Where to find files")
-@click.option("-t", "--to", help="Where to put files")
-@pass_drive
-def download(drive, frm, to):
-    """List of all documents in current user's GDrive directory
-    """
-    p = Path(to)
-    if not p.is_dir() and not p.exists():
-        click.echo("Please specify existing directory", err=True)
-        return
+cli.add_command(download)
+cli.add_command(upload)
 
-    page_token = None
-    drive_folders = drive.cli.files().list(
-        q=f"mimeType = '{FOLDER_MIMETYPE}' and name = '{frm}' and trashed = False",
-        spaces='drive',
-        pageToken=page_token
-    ).execute()
-    if not drive_folders:
-        click.echo("Please specify existing drive folder")
-    fid = drive_folders['files'][0]['id']
-    drive_files = drive.cli.files().list(
-        q=f"'{fid}' in parents and trashed = False",
-        spaces='drive',
-        pageToken=page_token
-    ).execute()
-    pprint(drive_files)
-    jobs = [gevent.spawn(download_file, drive.cli, f['id'], Path(f['name']).name, to) for f in drive_files['files']]
-    gevent.wait(jobs)
-
-
-def upload_file(cl, frm, fid):
-
-    file_metadata = {
-        'name': str(frm),
-        'parents': [fid]
-    }
-    media = MediaFileUpload(
-        str(frm),
-        mimetype='image/jpeg',
-    )
-    print(f"I'm greenlet for the {frm}")
-    cl.files().create(
-        body=file_metadata,
-        media_body=media,
-        fields='id',
-    ).execute()
-
-    print(f"Downloaded for the {frm}")
-
-
-def download_file(cl, fid, fname, to):
-    request = cl.files().get_media(fileId=fid)
-    fh = io.BytesIO()
-    downloader = MediaIoBaseDownload(fh, request)
-    done = False
-    print(f"I'm greenlet for the {fid}")
-    while done is False:
-        status, done = downloader.next_chunk()
-        print
-        "Download %d%%." % int(status.progress() * 100)
-    with open(f"{to}/{fname}", "wb") as f:
-        f.write(fh.getbuffer())
-    print(f"Downloaded for the {fid}")
