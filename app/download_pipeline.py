@@ -4,7 +4,6 @@ import click
 import gevent
 
 from app.cli import pass_provider
-from app.gdrive import GoogleDrive
 from app.helpers import get_folder
 
 
@@ -13,7 +12,7 @@ from app.helpers import get_folder
 @click.option("-t", "--to", help="Where to put files")
 @pass_provider
 def download(ctx, frm, to):
-    """List of all documents in current user's GDrive directory
+    """Download files from the provider folder to the local folder
     """
     provider = ctx.provider
     download_dir(provider, frm, to)

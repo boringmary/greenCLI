@@ -4,21 +4,21 @@ import abc
 class SourceInterface(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
-    def get_source_folder(self, path: str, file_name: str):
-        """Upload file to the source"""
+    def get_source_folder(self, name):
+        """Get provider folder"""
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_source_files(self, full_file_path: str):
-        """Download file from the source"""
+    def get_source_files(self, folder_id):
+        """Fet all files from provider folder"""
         raise NotImplementedError
 
     @abc.abstractmethod
-    def upload_file(self, full_file_path: str):
-        """Download file from the source"""
+    def upload_file(self, file, source_folder):
+        """Upload file to the provider"""
         raise NotImplementedError
 
     @abc.abstractmethod
-    def download_file(self, full_file_path: str):
-        """Download file from the source"""
+    def download_file(self, file, local_folder):
+        """Download file from the provider"""
         raise NotImplementedError

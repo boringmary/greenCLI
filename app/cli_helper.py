@@ -56,7 +56,7 @@ COMMAND_HANDLERS = {
 @click.command()
 @pass_provider
 def helper(drive):
-    """Run interactive handler"""
+    """Run interactive helper"""
     msg = '\n'.join([f'{k} - {v}' for k, v in BACKENDS.items()])
     msg = f"Please choose a backend ({BACKENDS['g']} by default) \n" + msg
     value = click.prompt(msg, type=str, default=BACKENDS['g'])

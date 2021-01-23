@@ -12,7 +12,7 @@ from app.helpers import get_folder
 @click.option("-t", "--to", help="Where to put files")
 @pass_provider
 def upload(ctx, frm, to):
-    """List of all documents in current user's GDrive directory
+    """Upload files from the local folder to the target provider folder
     """
     provider = ctx.provider
     upload_dir(provider, frm, to)

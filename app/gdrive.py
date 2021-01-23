@@ -1,8 +1,8 @@
 import io
 
-from app.base import SourceInterface
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
 
+from app.base import SourceInterface
 from app.constants import FOLDER_MIMETYPE
 
 
@@ -33,10 +33,10 @@ class GoogleDrive(SourceInterface):
 
         return drive_files['files']
 
-    def upload_file(self, file, folder):
+    def upload_file(self, file, source_folder):
         file_metadata = {
             'name': file.name,
-            'parents': [folder['id']]
+            'parents': [source_folder['id']]
         }
         media = MediaFileUpload(
             file,

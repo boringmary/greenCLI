@@ -1,8 +1,10 @@
 import abc
+from pathlib import Path
 
 from gevent import monkey;
 
 from app.gdrive import GoogleDrive
+from app.helpers import get_root_path
 
 monkey.patch_all()
 import os
@@ -34,7 +36,8 @@ pass_provider = click.make_pass_decorator(Context)
 @click.group()
 @click.version_option("1.0")
 def cli():
-    pass
+    """cliDrive is a command line tool which allow you to download/upload
+    files from/to several sources like Google Drive, DropBox"""
 
 
 @click.group()
@@ -42,19 +45,23 @@ def cli():
 @click.option("-v", "--verbose", default=False)
 @click.pass_context
 def drive(ctx, verbose):
-    """Gdrive is a command line tool that provides CLI for Google Drive interactions.
+    """Use Google Drive to upload/download data
     """
     creds = None
-    if os.path.exists('../token.pickle'):
-        with open('../token.pickle', 'rb') as token:
+    path = get_root_path('token.pickle')
+    if path.exists():
+        with open(path, 'rb') as token:
             creds = pickle.load(token)
     # If there are no (valid) credentials available, let the user log in.
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
+            path = get_root_path('credentials.json')
+            if not path.exists():
+                raise FileNotFoundError("credentials.json file is not found")
             flow = InstalledAppFlow.from_client_secrets_file(
-                '../credentials.json', SCOPES)
+                path.name, SCOPES)
             creds = flow.run_local_server(port=0)
         # Save the credentials for the next run
         with open('../token.pickle', 'wb') as token:
@@ -69,29 +76,14 @@ def drive(ctx, verbose):
     ctx.obj = Context(GoogleDrive(client))
 
 
-# @cli.command()
-# @pass_drive
-# def lst(drive):
-#     """List of all documents in current user's GDrive directory
-#     """
-#     items = drive.cli.files().list().execute()['items']
-#     for i in items:
-#         pprint(dict(
-#             owner=i['ownerNames'],
-#             title=i['title'],
-#             link=i['alternateLink'],
-#             type=i['kind']
-#         ))
-#         print("\n")
-
-
+from app.cli_helper import helper
 from app.upload_pipeline import upload
 from app.download_pipeline import download
-from app.cli_helper import helper
 
+
+drive.add_command(helper)
 drive.add_command(download)
 drive.add_command(upload)
-drive.add_command(helper)
 
 cli.add_command(drive)
 
