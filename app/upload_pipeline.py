@@ -1,4 +1,8 @@
-from gevent import monkey; monkey.patch_all()
+from gevent import monkey;
+
+from app.helpers import get_folder
+
+monkey.patch_all()
 
 from pathlib import Path
 
@@ -18,10 +22,14 @@ from app.constants import FOLDER_MIMETYPE
 def upload(drive, frm, to):
     """List of all documents in current user's GDrive directory
     """
-    p = Path(frm)
-    if not p.is_dir() and not p.exists():
+    upload_dir(drive, frm, to)
+
+
+def upload_dir(drive, frm, to):
+    p = get_folder(frm)
+    if not p:
         click.echo("Please specify existing directory", err=True)
-        return
+        upload(drive, frm, to)
 
     page_token = None
     drive_folders = drive.cli.files().list(
@@ -32,6 +40,8 @@ def upload(drive, frm, to):
 
     if not drive_folders:
         click.echo("Please specify existing drive folder")
+        upload(drive, frm, to)
+
     fid = drive_folders['files'][0]['id']
 
     from_files = [x for x in p.iterdir() if x.is_file()]

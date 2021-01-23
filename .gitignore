@@ -141,3 +141,4 @@ cython_debug/
 
 credentials.json
 token.pickle
+test/

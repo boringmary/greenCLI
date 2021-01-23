@@ -10,8 +10,10 @@ import gevent
 from googleapiclient.http import MediaIoBaseDownload
 
 from app.cli import pass_drive
+from app.helpers import get_folder
 
 from app.constants import FOLDER_MIMETYPE
+
 
 @click.command()
 @click.option("-f", "--frm", help="Where to find files")
@@ -20,10 +22,13 @@ from app.constants import FOLDER_MIMETYPE
 def download(drive, frm, to):
     """List of all documents in current user's GDrive directory
     """
-    p = Path(to)
-    if not p.is_dir() and not p.exists():
+    download_dir(drive, frm, to)
+
+
+def download_dir(drive, frm, to):
+    p = get_folder(frm)
+    if not p:
         click.echo("Please specify existing directory", err=True)
-        return
 
     page_token = None
     drive_folders = drive.cli.files().list(

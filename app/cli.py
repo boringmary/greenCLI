@@ -87,8 +87,10 @@ def lst(drive):
 
 from app.upload_pipeline import upload
 from app.download_pipeline import download
-
+from app.cli_helper import helper
 
 cli.add_command(download)
 cli.add_command(upload)
+cli.add_command(helper)
+
 
