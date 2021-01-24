@@ -22,7 +22,7 @@ def upload_dir(provider, frm, to):
     p = get_folder(frm)
     if not p:
         click.echo("Please specify existing directory", err=True)
-        upload(provider, p, to)
+        upload_dir(provider, p, to)
 
     source_folder = provider.get_source_folder(to)
     files = [f for f in p.iterdir() if f.is_file()]

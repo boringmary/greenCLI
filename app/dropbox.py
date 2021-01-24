@@ -1,20 +1,36 @@
+from pprint import pprint
+
+import dropbox
+
 from app.base import SourceInterface
 
 
-class Dropbox(SourceInterface):
+class DropboxProvider(SourceInterface):
 
-    def get_source_folder(self, path: str, file_name: str):
+    prefix = "/Dropbox"
+
+    def __init__(self, client):
+        self.cli = client
+
+    def get_source_folder(self, name):
         """Upload file to the source"""
-        raise NotImplementedError
+        return {"name": name, "id": name}
 
-    def get_source_files(self, full_file_path: str):
+    def get_source_files(self, source_folder):
         """Download file from the source"""
-        raise NotImplementedError
+        path = f"{self.prefix}/{source_folder}"
+        return self.cli.files_list_folder(path).entries
 
-    def upload_file(self, full_file_path: str):
+    def upload_file(self, file, source_folder):
         """Download file from the source"""
-        raise NotImplementedError
+        with open(file, "rb") as f:
+            data = f.read()
+        self.cli.files_upload(
+            data,
+            f"{self.prefix}/{source_folder}/{file.name}",
+            mode=dropbox.files.WriteMode.overwrite
+        )
 
-    def download_file(self, full_file_path: str):
+    def download_file(self, file, local_folder):
         """Download file from the source"""
-        raise NotImplementedError
+        self.cli.files_download_to_file(f'{str(local_folder)}/{file.name}', file.path_lower)

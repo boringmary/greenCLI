@@ -139,6 +139,8 @@ cython_debug/
 
 .idea
 
-credentials.json
+drive_credentials.json
+db_credentials.json
+
 token.pickle
 test/

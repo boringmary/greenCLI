@@ -1,19 +1,17 @@
-import abc
+import json
 from pathlib import Path
 
-from gevent import monkey;
+from gevent import monkey; monkey.patch_all()
 
+import dropbox
 from app.gdrive import GoogleDrive
-from app.helpers import get_root_path
-
-monkey.patch_all()
-import os
+from app.dropbox import DropboxProvider
+from app.helpers import get_root_path, create_root_file
+from dropbox import DropboxOAuth2FlowNoRedirect
 
 import click
 import pickle
-import os.path
 import httplib2
-from pprint import pprint
 
 import googleapiclient
 import google_auth_httplib2
@@ -45,7 +43,7 @@ def cli():
 @click.option("-v", "--verbose", default=False)
 @click.pass_context
 def drive(ctx, verbose):
-    """Use Google Drive to upload/download data
+    """Use Google Drive to upload/download files
     """
     creds = None
     path = get_root_path('token.pickle')
@@ -57,9 +55,9 @@ def drive(ctx, verbose):
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            path = get_root_path('credentials.json')
+            path = get_root_path('drive_credentials.json')
             if not path.exists():
-                raise FileNotFoundError("credentials.json file is not found")
+                raise FileNotFoundError("drive_credentials.json file is not found")
             flow = InstalledAppFlow.from_client_secrets_file(
                 path.name, SCOPES)
             creds = flow.run_local_server(port=0)
@@ -76,6 +74,52 @@ def drive(ctx, verbose):
     ctx.obj = Context(GoogleDrive(client))
 
 
+@click.group()
+@click.version_option("1.0")
+@click.pass_context
+def dbox(ctx):
+    """
+    Use Dropbox to upload/download files
+    """
+    path = Path(__file__).parent.parent.joinpath('db_credentials.json')
+    if not path.exists():
+        raise FileNotFoundError("db_credentials.json file is not found")
+
+    with open(path, 'r') as f:
+        creds = json.load(f)
+
+    app_key = creds['APP_KEY']
+    app_secret = creds['APP_SECRET']
+
+    auth_flow = DropboxOAuth2FlowNoRedirect(
+        app_key,
+        app_secret,
+        token_access_type='legacy',
+        scope=['files.metadata.read', 'files.metadata.write', 'files.content.write', 'files.content.read']
+    )
+
+    path = Path(__file__).parent.parent.joinpath('db_token.pickle')
+    if path.exists():
+        with open(path, 'rb') as token:
+            access_token = pickle.load(token).strip()
+    else:
+        authorize_url = auth_flow.start()
+        print("1. Go to: " + authorize_url)
+        print("2. Click \"Allow\" (you might have to log in first).")
+        print("3. Copy the authorization code.")
+        auth_code = input("Enter the authorization code here: ").strip()
+
+        try:
+            access_token = auth_flow.finish(auth_code).access_token
+            with open(Path(__file__).parent.parent.joinpath('db_token.pickle'), 'wb') as token:
+                pickle.dump(access_token, token)
+        except Exception as e:
+            raise e
+
+    client = dropbox.Dropbox(oauth2_access_token=access_token, app_key=APP_KEY)
+    ctx.obj = Context(DropboxProvider(client))
+
+
 from app.cli_helper import helper
 from app.upload_pipeline import upload
 from app.download_pipeline import download
@@ -85,5 +129,10 @@ drive.add_command(helper)
 drive.add_command(download)
 drive.add_command(upload)
 
+dbox.add_command(helper)
+dbox.add_command(download)
+dbox.add_command(upload)
+
 cli.add_command(drive)
+cli.add_command(dbox)
 

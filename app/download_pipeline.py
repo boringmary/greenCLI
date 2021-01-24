@@ -22,7 +22,7 @@ def download_dir(provider, frm, to):
     local_folder = get_folder(to)
     if not local_folder:
         click.echo("Please specify existing directory", err=True)
-        download(provider, frm, to)
+        download_dir(provider, frm, to)
 
     p_folder = provider.get_source_folder(frm)
     files = provider.get_source_files(p_folder['id'])

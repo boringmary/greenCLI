@@ -10,3 +10,8 @@ def get_folder(folder):
 
 def get_root_path(filename):
     return Path.joinpath(Path(__name__).parent, filename)
+
+
+def create_root_file(filename):
+    return Path.joinpath(Path(__name__), filename).touch()
+
